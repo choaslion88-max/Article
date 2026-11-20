@@ -1,0 +1,29 @@
+name: Windows financial bulletin connectivity probe
+on:
+  push:
+    branches: [finance-disclosure-probe]
+    paths:
+      - windows-bulletin-probe.ps1
+      - .github/workflows/windows-bulletin-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-public-bulletins:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe five official boards with Windows PowerShell 5.1
+        shell: powershell
+        run: ./windows-bulletin-probe.ps1 -OutputDirectory probe-output/windows-powershell
+      - name: Probe five official boards with PowerShell 7
+        shell: pwsh
+        run: ./windows-bulletin-probe.ps1 -OutputDirectory probe-output/powershell-core
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-public-bulletin-probe
+          path: probe-output/
+          retention-days: 1
+
