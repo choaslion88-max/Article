@@ -1,0 +1,21 @@
+name: Financial bulletin connectivity probe
+on:
+  push:
+    branches: [finance-disclosure-probe]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-bulletins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read three official public bulletin lists
+        run: python3 relay-probe.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-bulletin-probe
+          path: probe-output/
+          retention-days: 1
+
