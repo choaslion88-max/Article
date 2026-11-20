@@ -1,0 +1,34 @@
+name: Chrome financial bulletin connectivity probe
+on:
+  push:
+    branches: [finance-disclosure-probe]
+    paths:
+      - chrome-bulletin-probe.mjs
+      - .github/workflows/chrome-bulletin-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome-public-bulletins:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check preinstalled vendor Chrome
+        run: google-chrome --version
+      - name: Install pinned Microsoft Playwright library only
+        run: npm install --no-save --package-lock=false --ignore-scripts playwright-core@1.65.1
+      - name: Read the two fixed official public pages in Chrome
+        run: node chrome-bulletin-probe.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chrome-public-bulletin-probe
+          path: probe-output/chrome/
+          retention-days: 1
+
