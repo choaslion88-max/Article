@@ -5,8 +5,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 const output='probe-output/chrome';
 const sources=Object.freeze([
-  {id:'nhbank_notice',url:'https://www.nhbank.com/goSubPage.do?srchGb=KO_NHMN_14',selector:'.boardType02 li'},
-  {id:'ibk_regulation',url:'https://www.ibk.co.kr/ir/bankManagerListIr.ibk?pageId=IR05040500',selector:'table.tbl tbody tr'}
+  {id:'suhyup_notice_biz',url:'https://biz.suhyup-bank.com/ib20/mnu/CBM00334',selector:'table.boardList tbody tr'},
+  {id:'suhyup_notice_www',url:'https://www.suhyup-bank.com/ib20/mnu/PBM00551',selector:'table.boardList tbody tr'},
+  {id:'suhyup_disclosure_biz',url:'https://biz.suhyup-bank.com/ib20/mnu/CBM02846',selector:'table.boardList tbody tr'},
+  {id:'suhyup_disclosure_www',url:'https://www.suhyup-bank.com/ib20/mnu/PBM01753',selector:'table.boardList tbody tr'}
 ]);
 const safeError=error=>String(error?.message||error).split('\n')[0].replace(/https?:\/\/\S+/g,'[official URL]').slice(0,250);
 await mkdir(output,{recursive:true});
@@ -63,18 +65,13 @@ try {
       const records=await page.evaluate(({id,selector})=>{
         const clean=value=>String(value||'').replace(/\s+/g,' ').trim();
         return [...document.querySelectorAll(selector)].map(row=>{
-          if(id==='nhbank_notice') {
-            const href=row.querySelector('a')?.getAttribute('href')||'';
-            const match=/fn_goPostDtlPage\(['"](\d+)['"],['"]KO_NHMN_14['"]/.exec(href);
-            const heading=row.querySelector('.boardList > p')?.cloneNode(true);
-            heading?.querySelectorAll('.date,.category').forEach(node=>node.remove());
-            return {id:match?.[1]||null,title:clean(heading?.textContent),date:clean(row.querySelector('.date')?.textContent)};
-          }
-          const href=row.querySelector('a[href]')?.getAttribute('href')||'';
+          const anchor=row.querySelector('.alignLeft a[onclick]');
+          const onclick=anchor?.getAttribute('onclick')||'';
+          const notice=id.startsWith('suhyup_notice');
+          const match=notice?/goDetail\(\s*(\d+)\s*\)/.exec(onclick):/movePage\(\s*['"](\d+)['"]\s*,\s*['"]26['"]\s*\)/.exec(onclick);
           const date=[...row.querySelectorAll('td')].map(cell=>clean(cell.textContent))
             .find(text=>/^20\d{2}[.\-/]\d{2}[.\-/]\d{2}$/.test(text))||'';
-          return {id:/[?&]seq=(\d+)/.exec(href)?.[1]||null,
-            title:clean(row.querySelector('.subject')?.textContent),date};
+          return {id:match?((notice?'js:goDetail:':'suhyup:26:')+match[1]):null,title:clean(anchor?.textContent),date};
         });
       },source);
       result.count=records.length;
